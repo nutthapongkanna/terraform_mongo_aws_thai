@@ -13,7 +13,6 @@ APP_PASS="${mongo_app_password}"
 apt-get update -y
 apt-get install -y ca-certificates curl gnupg lsb-release
 
-# Install Docker Engine (Ubuntu)
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
@@ -28,29 +27,8 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 systemctl enable docker
 systemctl start docker
 
-# Map data ออกนอก container
 mkdir -p /opt/mongo/data
-mkdir -p /opt/mongo/init
-chmod 700 /opt/mongo /opt/mongo/data /opt/mongo/init
-
-# Init script: สร้าง DB + user ปกติ
-cat > /opt/mongo/init/01-init.js <<EOF
-const dbName  = "$DB_NAME";
-const appUser = "$APP_USER";
-const appPass = "$APP_PASS";
-
-db = db.getSiblingDB(dbName);
-
-// ให้ DB ถูกสร้างแน่นอน
-db.createCollection("init_check");
-db.init_check.insertOne({ createdAt: new Date(), note: "initialized" });
-
-db.createUser({
-  user: appUser,
-  pwd:  appPass,
-  roles: [{ role: "readWrite", db: dbName }]
-});
-EOF
+chmod 700 /opt/mongo /opt/mongo/data
 
 docker rm -f mongo >/dev/null 2>&1 || true
 
@@ -58,10 +36,36 @@ docker run -d --name mongo \
   --restart unless-stopped \
   -p $MONGO_PORT:27017 \
   -v /opt/mongo/data:/data/db \
-  -v /opt/mongo/init:/docker-entrypoint-initdb.d:ro \
   -e MONGO_INITDB_ROOT_USERNAME="$MONGO_ROOT_USER" \
   -e MONGO_INITDB_ROOT_PASSWORD="$MONGO_ROOT_PASS" \
   -e MONGO_INITDB_DATABASE="$DB_NAME" \
   mongo:7 --bind_ip_all
 
-docker ps
+# wait mongo ready
+for i in $(seq 1 60); do
+  if docker exec mongo mongosh --quiet \
+    -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASS" --authenticationDatabase admin \
+    --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+# ensure db + app user (create if missing, else reset password)
+docker exec mongo mongosh --quiet \
+  -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASS" --authenticationDatabase admin \
+  --eval "
+    const dbName  = '$DB_NAME';
+    const appUser = '$APP_USER';
+    const appPass = '$APP_PASS';
+    let d = db.getSiblingDB(dbName);
+
+    if (d.getUser(appUser) == null) {
+      d.createUser({ user: appUser, pwd: appPass, roles: [{ role: 'readWrite', db: dbName }] });
+    } else {
+      d.changeUserPassword(appUser, appPass);
+    }
+
+    d.createCollection('init_check');
+    d.init_check.insertOne({ createdAt: new Date(), note: 'ensured by boot script' });
+  "

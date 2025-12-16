@@ -95,7 +95,6 @@ resource "aws_key_pair" "this" {
   key_name   = "${var.project_name}-key"
   public_key = var.ssh_public_key
 }
-
 resource "aws_instance" "mongo" {
   ami                         = data.aws_ami.ubuntu_2204.id
   instance_type               = var.instance_type
@@ -108,6 +107,8 @@ resource "aws_instance" "mongo" {
     volume_size = var.disk_gb
     volume_type = "gp3"
   }
+
+  user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/user_data/install_docker_run_mongo.sh.tftpl", {
     mongo_port          = var.mongo_port
