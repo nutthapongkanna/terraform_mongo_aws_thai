@@ -7,4 +7,4 @@ mongo_allowed_cidrs = ["0.0.0.0/0"]
 mongo_database     = ""
 mongo_root_username = ""
 mongo_app_username  = ""
-EOF
+
