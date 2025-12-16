@@ -8,6 +8,23 @@ data "aws_ami" "ubuntu_2204" {
   }
 }
 
+# Generate passwords (ไม่มี special chars)
+resource "random_password" "mongo_root" {
+  length  = var.password_length
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+}
+
+resource "random_password" "mongo_app" {
+  length  = var.password_length
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -55,7 +72,6 @@ resource "aws_security_group" "sg" {
     cidr_blocks = var.ssh_allowed_cidrs
   }
 
-  # ✅ เปิด MongoDB ออก Internet
   ingress {
     description = "MongoDB"
     from_port   = var.mongo_port
@@ -96,7 +112,11 @@ resource "aws_instance" "mongo" {
   user_data = templatefile("${path.module}/user_data/install_docker_run_mongo.sh.tftpl", {
     mongo_port          = var.mongo_port
     mongo_root_username = var.mongo_root_username
-    mongo_root_password = var.mongo_root_password
+    mongo_root_password = random_password.mongo_root.result
+
+    mongo_database     = var.mongo_database
+    mongo_app_username = var.mongo_app_username
+    mongo_app_password = random_password.mongo_app.result
   })
 
   tags = { Name = "${var.project_name}-instance" }

@@ -1,4 +1,10 @@
-ssh_public_key       = ""
-ssh_allowed_cidrs    = ["0.0.0.0/0"]                                 # (ตามที่อยากเปิด)
-mongo_allowed_cidrs  = ["0.0.0.0/0"]                                 # ✅ เปิด 27017 ออก internet
-mongo_root_password  = "PUT_A_VERY_LONG_RANDOM_PASSWORD_HERE"
+
+ssh_public_key = ""
+# เปิด test ตามที่ขอ
+ssh_allowed_cidrs   = ["0.0.0.0/0"]
+mongo_allowed_cidrs = ["0.0.0.0/0"]
+# เลือกได้ว่าจะเปลี่ยนชื่อ db/user ไหม
+mongo_database     = ""
+mongo_root_username = ""
+mongo_app_username  = ""
+EOF

@@ -30,12 +30,13 @@ variable "disk_gb" {
 
 variable "ssh_public_key" {
   type        = string
-  description = "เนื้อหา public key เช่น ~/.ssh/th-mongo.pub"
+  description = "ใส่ public key (เช่น ~/.ssh/th-mongo.pub)"
 }
 
+# (ตามที่ขอ test) เปิด SSH จากทุกที่ได้ แต่แนะนำให้เปลี่ยนเป็น IP ตัวเอง/32
 variable "ssh_allowed_cidrs" {
-  type        = list(string)
-  default     = ["0.0.0.0/0"] # (ถ้าอยากปลอดภัย ให้เปลี่ยนเป็น IP ตัวเอง/32)
+  type    = list(string)
+  default = ["0.0.0.0/0"]
 }
 
 variable "mongo_port" {
@@ -43,17 +44,30 @@ variable "mongo_port" {
   default = 27017
 }
 
+# (ตามที่ขอ) เปิด Mongo ออก internet
 variable "mongo_allowed_cidrs" {
   type    = list(string)
-  default = ["0.0.0.0/0"] # ✅ ตามที่ขอ: เปิดให้ทุกคนเข้าถึงได้
+  default = ["0.0.0.0/0"]
 }
 
+# users + db
 variable "mongo_root_username" {
   type    = string
-  default = "admin"
+  default = "root"
 }
 
-variable "mongo_root_password" {
-  type      = string
-  sensitive = true
+variable "mongo_app_username" {
+  type    = string
+  default = "appuser"
+}
+
+variable "mongo_database" {
+  type    = string
+  default = "databasetest"
+}
+
+# สุ่มรหัสผ่านแบบไม่มี special
+variable "password_length" {
+  type    = number
+  default = 24
 }
