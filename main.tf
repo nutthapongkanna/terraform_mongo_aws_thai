@@ -1,30 +1,39 @@
-data "aws_ami" "ubuntu_2204" {
+# =====================================================
+# AMI : Ubuntu (เลือก version จาก tfvars)
+# =====================================================
+data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = [var.ubuntu_owner]
 
   filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+    name = "name"
+    values = [
+      "ubuntu/images/hvm-ssd/ubuntu-${replace(var.ubuntu_version, ".", "")}-amd64-server-*"
+    ]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
 
-# Generate passwords (ไม่มี special chars)
+# =====================================================
+# Passwords
+# =====================================================
 resource "random_password" "mongo_root" {
   length  = var.password_length
   special = false
-  upper   = true
-  lower   = true
-  numeric = true
 }
 
 resource "random_password" "mongo_app" {
   length  = var.password_length
   special = false
-  upper   = true
-  lower   = true
-  numeric = true
 }
 
+# =====================================================
+# VPC / Subnet / Routing
+# =====================================================
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -41,7 +50,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.subnet_cidr
   map_public_ip_on_launch = true
-  tags                    = { Name = "${var.project_name}-subnet-public" }
+  tags = { Name = "${var.project_name}-subnet-public" }
 }
 
 resource "aws_route_table" "public" {
@@ -60,65 +69,119 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_security_group" "sg" {
-  name   = "${var.project_name}-sg"
+# =====================================================
+# Key Pair
+# =====================================================
+resource "aws_key_pair" "this" {
+  key_name   = "${var.project_name}-key"
+  public_key = var.ssh_public_key
+}
+
+# =====================================================
+# Security Group : DEV
+# =====================================================
+resource "aws_security_group" "dev_sg" {
+  name   = "${var.project_name}-dev-sg"
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description = "SSH"
+    description = "SSH to dev"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = var.ssh_allowed_cidrs
   }
 
-  ingress {
-    description = "MongoDB"
-    from_port   = var.mongo_port
-    to_port     = var.mongo_port
-    protocol    = "tcp"
-    cidr_blocks = var.mongo_allowed_cidrs
-  }
-
   egress {
-    description = "all"
+    description = "all outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = { Name = "${var.project_name}-sg" }
 }
 
-resource "aws_key_pair" "this" {
-  key_name   = "${var.project_name}-key"
-  public_key = var.ssh_public_key
+# =====================================================
+# Security Group : MONGO
+# =====================================================
+resource "aws_security_group" "mongo_sg" {
+  name   = "${var.project_name}-mongo-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description     = "Mongo from dev only"
+    from_port       = var.mongo_port
+    to_port         = var.mongo_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.dev_sg.id]
+  }
+
+  ingress {
+    description = "SSH to mongo"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.ssh_allowed_cidrs
+  }
+
+  egress {
+    description = "all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
-resource "aws_instance" "mongo" {
-  ami                         = data.aws_ami.ubuntu_2204.id
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.public.id
-  vpc_security_group_ids      = [aws_security_group.sg.id]
-  associate_public_ip_address = true
-  key_name                    = aws_key_pair.this.key_name
+
+# =====================================================
+# DEV VM
+# =====================================================
+resource "aws_instance" "dev" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.dev_instance_type
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.dev_sg.id]
+  key_name               = aws_key_pair.this.key_name
 
   root_block_device {
-    volume_size = var.disk_gb
+    volume_size = var.dev_disk_gb
     volume_type = "gp3"
   }
 
-  user_data_replace_on_change = true
+  user_data = templatefile(
+    "${path.module}/user_data/install_docker_dev_vm.sh.tftpl",
+    {}
+  )
 
-  user_data = templatefile("${path.module}/user_data/install_docker_run_mongo.sh.tftpl", {
-    mongo_port          = var.mongo_port
-    mongo_root_username = var.mongo_root_username
-    mongo_root_password = random_password.mongo_root.result
+  tags = { Name = "${var.project_name}-dev-vm" }
+}
 
-    mongo_database     = var.mongo_database
-    mongo_app_username = var.mongo_app_username
-    mongo_app_password = random_password.mongo_app.result
-  })
+# =====================================================
+# MONGO VM
+# =====================================================
+resource "aws_instance" "mongo" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.mongo_instance_type
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.mongo_sg.id]
+  key_name               = aws_key_pair.this.key_name
 
-  tags = { Name = "${var.project_name}-instance" }
+  root_block_device {
+    volume_size = var.mongo_disk_gb
+    volume_type = "gp3"
+  }
+
+  user_data = templatefile(
+    "${path.module}/user_data/install_docker_run_mongo.sh.tftpl",
+    {
+      mongo_port          = var.mongo_port
+      mongo_root_username = var.mongo_root_username
+      mongo_root_password = random_password.mongo_root.result
+      mongo_database      = var.mongo_database
+      mongo_app_username  = var.mongo_app_username
+      mongo_app_password  = random_password.mongo_app.result
+    }
+  )
+
+  tags = { Name = "${var.project_name}-mongo-vm" }
 }

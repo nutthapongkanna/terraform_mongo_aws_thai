@@ -1,73 +1,90 @@
+# ----------------------------
+# AWS / Project
+# ----------------------------
 variable "aws_region" {
-  type    = string
-  default = "ap-southeast-7" # Thailand
+  type = string
 }
 
 variable "project_name" {
-  type    = string
-  default = "th-mongo-open"
+  type = string
 }
 
+# ----------------------------
+# Network
+# ----------------------------
 variable "vpc_cidr" {
-  type    = string
-  default = "10.10.0.0/24"
+  type = string
 }
 
 variable "subnet_cidr" {
+  type = string
+}
+
+# ----------------------------
+# OS
+# ----------------------------
+variable "ubuntu_owner" {
   type    = string
-  default = "10.10.0.0/24"
+  default = "099720109477"
 }
 
-variable "instance_type" {
-  type    = string
-  default = "t3.small"
-}
-
-variable "disk_gb" {
-  type    = number
-  default = 30
-}
-
-variable "ssh_public_key" {
+variable "ubuntu_version" {
   type        = string
-  description = "ใส่ public key (เช่น ~/.ssh/th-mongo.pub)"
+  description = "20.04 | 22.04 | 24.04"
 }
 
-# (ตามที่ขอ test) เปิด SSH จากทุกที่ได้ แต่แนะนำให้เปลี่ยนเป็น IP ตัวเอง/32
+# ----------------------------
+# SSH
+# ----------------------------
+variable "ssh_public_key" {
+  type = string
+}
+
 variable "ssh_allowed_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"]
+  type = list(string)
+}
+
+# ----------------------------
+# DEV VM
+# ----------------------------
+variable "dev_instance_type" {
+  type = string
+}
+
+variable "dev_disk_gb" {
+  type = number
+}
+
+# ----------------------------
+# MONGO VM
+# ----------------------------
+variable "mongo_instance_type" {
+  type = string
+}
+
+variable "mongo_disk_gb" {
+  type = number
 }
 
 variable "mongo_port" {
-  type    = number
-  default = 27017
+  type = number
 }
 
-# (ตามที่ขอ) เปิด Mongo ออก internet
-variable "mongo_allowed_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"]
-}
-
-# users + db
 variable "mongo_root_username" {
-  type    = string
-  default = "root"
+  type = string
 }
 
 variable "mongo_app_username" {
-  type    = string
-  default = "appuser"
+  type = string
 }
 
 variable "mongo_database" {
-  type    = string
-  default = "databasetest"
+  type = string
 }
 
-# สุ่มรหัสผ่านแบบไม่มี special
+# ----------------------------
+# Password
+# ----------------------------
 variable "password_length" {
-  type    = number
-  default = 24
+  type = number
 }
