@@ -1,20 +1,36 @@
 # =====================================================
-# AMI : Ubuntu (เลือก version จาก tfvars)
+# AMI : Ubuntu (FIX สำหรับ ap-southeast-7)
+# - ใช้ hvm-ssd-gp3 + jammy (22.04)
 # =====================================================
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = [var.ubuntu_owner]
+  owners      = [var.ubuntu_owner] # Canonical
 
   filter {
     name = "name"
     values = [
-      "ubuntu/images/hvm-ssd/ubuntu-${replace(var.ubuntu_version, ".", "")}-amd64-server-*"
+      "ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-${var.ubuntu_version}-amd64-server-*"
     ]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
   }
 
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
+  }
+
+  filter {
+    name   = "state"
+    values = ["available"]
   }
 }
 
@@ -110,7 +126,7 @@ resource "aws_security_group" "mongo_sg" {
   name   = "${var.project_name}-mongo-sg"
   vpc_id = aws_vpc.main.id
 
-  # 1️⃣ Internal: dev-vm -> mongo
+  # 1) Internal: dev-vm -> mongo
   ingress {
     description     = "Mongo from dev-vm (internal)"
     from_port       = var.mongo_port
@@ -119,7 +135,7 @@ resource "aws_security_group" "mongo_sg" {
     security_groups = [aws_security_group.dev_sg.id]
   }
 
-  # 2️⃣ External: VPN public IPs -> mongo
+  # 2) External: VPN public IPs -> mongo public IP
   ingress {
     description = "Mongo from VPN external IPs"
     from_port   = var.mongo_port

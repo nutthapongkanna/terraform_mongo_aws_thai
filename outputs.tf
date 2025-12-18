@@ -29,12 +29,12 @@ output "mongo_private_ip" {
 # ----------------------------
 output "mongo_uri_internal" {
   description = "MongoDB URI via internal/private IP"
-  value = "mongodb://${var.mongo_app_username}:${random_password.mongo_app.result}@${aws_instance.mongo.private_ip}:${var.mongo_port}/${var.mongo_database}"
-  sensitive = true
+  value       = "mongodb://${var.mongo_app_username}:${random_password.mongo_app.result}@${aws_instance.mongo.private_ip}:${var.mongo_port}/${var.mongo_database}"
+  sensitive   = true
 }
 
 output "mongo_uri_external" {
-  description = "MongoDB URI via public/external IP"
-  value = "mongodb://${var.mongo_app_username}:${random_password.mongo_app.result}@${aws_instance.mongo.public_ip}:${var.mongo_port}/${var.mongo_database}"
-  sensitive = true
+  description = "MongoDB URI via public/external IP (will work only if vpn_allowed_cidrs allows your source IP)"
+  value       = "mongodb://${var.mongo_app_username}:${random_password.mongo_app.result}@${aws_instance.mongo.public_ip}:${var.mongo_port}/${var.mongo_database}"
+  sensitive   = true
 }
