@@ -185,3 +185,4 @@ resource "aws_instance" "mongo" {
 
   tags = { Name = "${var.project_name}-mongo-vm" }
 }
+  
