@@ -21,16 +21,17 @@ variable "subnet_cidr" {
 }
 
 # ----------------------------
-# OS
+# Ubuntu AMI
 # ----------------------------
 variable "ubuntu_owner" {
   type    = string
-  default = "099720109477"
+  default = "099720109477" # Canonical
 }
 
 variable "ubuntu_version" {
   type        = string
-  description = "20.04 | 22.04 | 24.04"
+  description = "Ubuntu version string, e.g. 22.04"
+  default     = "22.04"
 }
 
 # ----------------------------
@@ -41,57 +42,72 @@ variable "ssh_public_key" {
 }
 
 variable "ssh_allowed_cidrs" {
-  type = list(string)
+  type        = list(string)
+  description = "CIDRs allowed to SSH into dev/mongo"
 }
 
 # ----------------------------
-# DEV VM
+# VPN external -> Mongo
+# ----------------------------
+variable "vpn_allowed_cidrs" {
+  type        = list(string)
+  description = "Public VPN egress IPs allowed to access Mongo public IP:27017"
+  default     = []
+}
+
+# ----------------------------
+# DEV VM sizing
 # ----------------------------
 variable "dev_instance_type" {
-  type = string
+  type    = string
+  default = "t3.micro"
 }
 
 variable "dev_disk_gb" {
-  type = number
+  type    = number
+  default = 20
 }
 
 # ----------------------------
-# MONGO VM
+# MONGO VM sizing
 # ----------------------------
 variable "mongo_instance_type" {
-  type = string
+  type    = string
+  default = "t3.small"
 }
 
 variable "mongo_disk_gb" {
-  type = number
+  type    = number
+  default = 50
 }
 
+# ----------------------------
+# Mongo config
+# ----------------------------
 variable "mongo_port" {
-  type = number
+  type    = number
+  default = 27017
 }
 
 variable "mongo_root_username" {
-  type = string
+  type    = string
+  default = "root"
 }
 
 variable "mongo_app_username" {
-  type = string
+  type    = string
+  default = "appuser"
 }
 
 variable "mongo_database" {
-  type = string
+  type    = string
+  default = "databasetest"
 }
 
 # ----------------------------
 # Password
 # ----------------------------
 variable "password_length" {
-  type = number
-}
-
-
-variable "vpn_allowed_cidrs" {
-  type        = list(string)
-  description = "Public IPs of external VPN allowed to access MongoDB"
-  default     = []
+  type    = number
+  default = 24
 }

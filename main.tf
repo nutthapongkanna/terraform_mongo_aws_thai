@@ -1,15 +1,15 @@
 # =====================================================
-# AMI : Ubuntu (FIX สำหรับ ap-southeast-7)
-# - ใช้ hvm-ssd-gp3 + jammy (22.04)
+# AMI : Ubuntu (เลือก version จาก tfvars)
+# NOTE: ap-southeast-7 ใช้ ubuntu/images/hvm-ssd/...
 # =====================================================
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = [var.ubuntu_owner] # Canonical
+  owners      = [var.ubuntu_owner]
 
   filter {
     name = "name"
     values = [
-      "ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-${var.ubuntu_version}-amd64-server-*"
+      "ubuntu/images/hvm-ssd/ubuntu-jammy-${var.ubuntu_version}-amd64-server-*"
     ]
   }
 

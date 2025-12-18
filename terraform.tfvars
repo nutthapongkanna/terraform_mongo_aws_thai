@@ -18,6 +18,8 @@ vpn_allowed_cidrs = [
   "/32"
 ]
 
+ubuntu_ami_id = "ami-069f8ce17905592f0"
+
 # DEV VM
 dev_instance_type = "t3.micro"
 dev_disk_gb       = 20
