@@ -78,7 +78,7 @@ resource "aws_key_pair" "this" {
 }
 
 # =====================================================
-# Security Group : DEV
+# Security Group : DEV VM
 # =====================================================
 resource "aws_security_group" "dev_sg" {
   name   = "${var.project_name}-dev-sg"
@@ -99,23 +99,36 @@ resource "aws_security_group" "dev_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = { Name = "${var.project_name}-dev-sg" }
 }
 
 # =====================================================
-# Security Group : MONGO
+# Security Group : MONGO VM
 # =====================================================
 resource "aws_security_group" "mongo_sg" {
   name   = "${var.project_name}-mongo-sg"
   vpc_id = aws_vpc.main.id
 
+  # 1️⃣ Internal: dev-vm -> mongo
   ingress {
-    description     = "Mongo from dev only"
+    description     = "Mongo from dev-vm (internal)"
     from_port       = var.mongo_port
     to_port         = var.mongo_port
     protocol        = "tcp"
     security_groups = [aws_security_group.dev_sg.id]
   }
 
+  # 2️⃣ External: VPN public IPs -> mongo
+  ingress {
+    description = "Mongo from VPN external IPs"
+    from_port   = var.mongo_port
+    to_port     = var.mongo_port
+    protocol    = "tcp"
+    cidr_blocks = var.vpn_allowed_cidrs
+  }
+
+  # SSH (optional)
   ingress {
     description = "SSH to mongo"
     from_port   = 22
@@ -131,6 +144,8 @@ resource "aws_security_group" "mongo_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = { Name = "${var.project_name}-mongo-sg" }
 }
 
 # =====================================================
@@ -185,4 +200,3 @@ resource "aws_instance" "mongo" {
 
   tags = { Name = "${var.project_name}-mongo-vm" }
 }
-  

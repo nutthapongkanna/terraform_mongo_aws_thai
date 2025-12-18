@@ -7,9 +7,14 @@ subnet_cidr = "10.10.0.0/24"
 # OS
 ubuntu_version = "22.04"
 
-# SSH
+# SSH (แนะนำจำกัด IP)
 ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..."
 ssh_allowed_cidrs = [
+  "/32"
+]
+
+# VPN external IP (⭐ จุดสำคัญ)
+vpn_allowed_cidrs = [
   "/32"
 ]
 

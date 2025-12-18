@@ -88,3 +88,10 @@ variable "mongo_database" {
 variable "password_length" {
   type = number
 }
+
+
+variable "vpn_allowed_cidrs" {
+  type        = list(string)
+  description = "Public IPs of external VPN allowed to access MongoDB"
+  default     = []
+}
