@@ -1,3 +1,7 @@
+############################################
+# main.tf
+############################################
+
 # =====================================================
 # AMI : Ubuntu (เลือก version จาก tfvars)
 # NOTE: ap-southeast-7 ใช้ ubuntu/images/hvm-ssd/...
@@ -94,7 +98,7 @@ resource "aws_key_pair" "this" {
 }
 
 # =====================================================
-# Security Group : DEV VM
+# Security Group : DEV VM  (เปิด 80/443 ออก 0.0.0.0/0)
 # =====================================================
 resource "aws_security_group" "dev_sg" {
   name   = "${var.project_name}-dev-sg"
@@ -106,6 +110,22 @@ resource "aws_security_group" "dev_sg" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = var.ssh_allowed_cidrs
+  }
+
+  ingress {
+    description = "HTTP to dev"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS to dev"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
